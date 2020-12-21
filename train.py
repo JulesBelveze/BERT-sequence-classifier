@@ -1,20 +1,20 @@
 import logging
 import math
 import os
+import neptune
+from datetime import datetime
 
 import torch
 from eval import evaluate
-from tensorboardX import SummaryWriter
 from torch.utils.data import DataLoader, RandomSampler
 from tqdm import trange, tqdm
 from transformers import AdamW, get_linear_schedule_with_warmup
 
-from utils.config import config
 from utils.metrics import get_accuracy, accuracy_thresh
 
 
-def train(train_dataset, eval_dataset, model, processor, freeze_model=False):
-    tb_writer = SummaryWriter()
+def train(train_dataset, eval_dataset, model, processor, config, freeze_model=False):
+    neptune.create_experiment(name=str(datetime.now()), params=config, upload_source_files=['*.py'])
 
     train_sampler = RandomSampler(train_dataset)
     train_dataloader = DataLoader(train_dataset, sampler=train_sampler, batch_size=config['train_batch_size'],
@@ -106,9 +106,10 @@ def train(train_dataset, eval_dataset, model, processor, freeze_model=False):
                 global_step += 1
 
                 if config['logging_steps'] > 0 and global_step % config['logging_steps'] == 0:
-                    tb_writer.add_scalar('lr', scheduler.get_lr()[0], global_step)
-                    tb_writer.add_scalar('train_loss', (tr_loss - logging_loss) / config['logging_steps'], global_step)
-                    tb_writer.add_scalar("train_acc", train_acc / config['logging_steps'], global_step)
+                    neptune.log_metric(name='lr', y=scheduler.get_lr()[0], x=global_step)
+                    neptune.log_metric(name='train_loss', y=(tr_loss - logging_loss) / config['logging_steps'],
+                                       x=global_step)
+                    neptune.log_metric(name='train_acc', y=train_acc / config['logging_steps'], x=global_step)
                     logging_loss = tr_loss
                     train_acc = 0.0
 
@@ -124,13 +125,8 @@ def train(train_dataset, eval_dataset, model, processor, freeze_model=False):
 
         # Log metrics
         if config['evaluate_during_training']:
-            results = evaluate(eval_dataset, model, processor, epoch)
+            results = evaluate(eval_dataset, model, processor, config, epoch)
             for key, value in results["scalars"].items():
-                tb_writer.add_scalar('eval_{}'.format(key), value, epoch)
-
-            if "labels_probs" in results["arrays"].keys():
-                labels_probs = results["arrays"]["labels_probs"]
-                for i in range(labels_probs.shape[0]):
-                    tb_writer.add_histogram("Confidence for label: {}".format(i), labels_probs[i], epoch)
+                neptune.log_metric.add_scalar(name='eval_{}'.format(key), y=value, x=epoch)
 
     return global_step, tr_loss / global_step

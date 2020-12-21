@@ -3,14 +3,14 @@ from tqdm import tqdm
 import logging
 import torch
 import numpy as np
+import neptune
 import torch.nn.functional as F
 from torch.utils.data import DataLoader, SequentialSampler
 
-from utils import config
 from utils.metrics import get_eval_report, get_mismatched, get_multi_label_report
 
 
-def evaluate(eval_dataset, model, processor, epoch=None, prefix=""):
+def evaluate(eval_dataset, model, processor, config, epoch=None, prefix=""):
     eval_output_dir = config['output_dir']
     results = {}
 
@@ -79,6 +79,6 @@ def evaluate(eval_dataset, model, processor, epoch=None, prefix=""):
             writer.write("%s = %s\n" % (key, str(result[key])))
 
     if config['get_mismatched']:
-        get_mismatched(target_label, preds, processor, config['output_mode'])
+        get_mismatched(target_label, preds, processor, config)
 
     return results

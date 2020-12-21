@@ -3,7 +3,6 @@ import numpy as np
 from pickle import dump
 from sklearn.metrics import classification_report, accuracy_score, f1_score, precision_score, recall_score, auc, \
     roc_curve
-from utils import config
 
 
 def accuracy_thresh(logits, y_true, thresh: float = 0.5):
@@ -70,14 +69,14 @@ def get_multi_label_report(targets, logits, flatten_output=False, thresh: float 
     }
 
 
-def get_eval_report(preds, probs, targets, loss_eval, flatten_output=False):
+def get_eval_report(preds, probs, targets, loss_eval, config, flatten_output=False):
     """"""
     acc = accuracy_score(targets, preds)
     f1 = f1_score(targets, preds, average='micro')
     prec = precision_score(targets, preds, average='micro')
     rec = recall_score(targets, preds, average='micro')
 
-    labels_probs = np.array([probs[:, i] for i in range(len(labels))])
+    labels_probs = np.array([probs[:, i] for i in range(config["num_labels"])])
 
     report = classification_report(targets, preds)
     return {
@@ -95,9 +94,9 @@ def get_eval_report(preds, probs, targets, loss_eval, flatten_output=False):
     }
 
 
-def get_mismatched(labels, preds, processor, output_mode, save=True):
+def get_mismatched(labels, preds, processor, config, save=True):
     """"""
-    if output_mode == "multi-label-classification":
+    if config["output_mode"] == "multi-label-classification":
         mismatched = (labels > 0.5) != preds
         processor = processor(labels, config["truncate_mode"])
     else:

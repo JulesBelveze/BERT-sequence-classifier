@@ -1,11 +1,14 @@
 import argparse
 import logging
+import neptune
+import os
 
 import torch
+from dotenv import load_dotenv
 
-from utils import config, Dataset, processors
 from eval import evaluate
 from train import train
+from utils import config, Dataset, processors
 
 
 def parse_flags():
@@ -24,6 +27,11 @@ def parse_flags():
 
 def run(args):
     """"""
+
+    # setting up neptune experiment
+    neptune.init(api_token=os.environ["NEPTUNE_API_TOKEN"],
+                 project_qualified_name='julesbelveze/{}'.format(config["model_type"]))
+
     config.update(args)
     logging.info("Used config: {}".format(config))
 
@@ -55,13 +63,14 @@ def run(args):
 
     if config["do_train"]:
         train_dataset = dataset.load_and_cache_examples(train=True, **config)
-        global_step, tr_loss = train(train_dataset, test_dataset, model, processor)
+        global_step, tr_loss = train(train_dataset, test_dataset, model, processor, config)
         logging.info(" global_step = %s, average loss = %s", global_step, tr_loss)
 
     if config["do_eval"]:
-        report = evaluate(test_dataset, model, processor)
+        report = evaluate(test_dataset, model, processor, config)
 
 
 if __name__ == "__main__":
+    load_dotenv()
     flags = vars(parse_flags())
     run(flags)
