@@ -14,6 +14,7 @@ scikit-learn = "^0.23.2"
 ipdb = "^0.13.4"
 numpy = "^1.19.4"
 neptune-client = "^0.4.129"
+tensor-dash = "^1.8.1"
 
 [tool.poetry.dev-dependencies]
 

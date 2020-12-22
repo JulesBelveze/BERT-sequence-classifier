@@ -1,20 +1,38 @@
 import logging
 import math
 import os
-import neptune
 from datetime import datetime
 
+import neptune
+import numpy as np
 import torch
-from eval import evaluate
+from tensordash.torchdash import Torchdash
 from torch.utils.data import DataLoader, RandomSampler
 from tqdm import trange, tqdm
 from transformers import AdamW, get_linear_schedule_with_warmup
 
+from eval import evaluate
 from utils.metrics import get_accuracy, accuracy_thresh
 
 
 def train(train_dataset, eval_dataset, model, processor, config, freeze_model=False):
+    """
+    :param train_dataset:
+    :param eval_dataset:
+    :param model:
+    :param processor:
+    :param config:
+    :param freeze_model:
+    :return:
+    """
+    # creating a neptune experiment
     neptune.create_experiment(name=str(datetime.now()), params=config, upload_source_files=['*.py'])
+
+    # setting up tensor-dash
+    histories = Torchdash(
+        ModelName=config["model_type"],
+        email=os.environ["TD_EMAIL"],
+        password=os.environ["TD_PWD"])
 
     train_sampler = RandomSampler(train_dataset)
     train_dataloader = DataLoader(train_dataset, sampler=train_sampler, batch_size=config['train_batch_size'],
@@ -36,9 +54,11 @@ def train(train_dataset, eval_dataset, model, processor, config, freeze_model=Fa
     scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=config['warmup_steps'],
                                                 num_training_steps=num_training_steps)
 
-    if freeze_model:  # will freeze all the model parameters except the classification part
+    # will freeze all the model parameters except the classification part
+    if freeze_model:
         model.freeze_bert_encoder()
 
+    # optimization
     if config['fp16']:
         try:
             from apex import amp
@@ -46,6 +66,7 @@ def train(train_dataset, eval_dataset, model, processor, config, freeze_model=Fa
             raise ImportError("Please install apex from https://www.github.com/nvidia/apex to use fp16 training.")
         model, optimizer = amp.initialize(model, optimizer, opt_level=config['fp16_opt_level'])
 
+    # if running on multiple GPUs
     if config['n_gpu'] > 1:
         model = torch.nn.DataParallel(model)
 
@@ -61,10 +82,13 @@ def train(train_dataset, eval_dataset, model, processor, config, freeze_model=Fa
     model.zero_grad()
     train_iterator = trange(int(config['num_train_epochs']), desc="Epoch")
 
+    # starting training
     for epoch in train_iterator:
+        epoch_losses = []
         for step, batch in enumerate(tqdm(train_dataloader, desc="Iteration")):
             model.train()
             batch = tuple(t.to(config['device']) for t in batch)
+
             if 'distilbert' not in config['model_type']:
                 inputs = {'input_ids': batch[0],
                           'attention_mask': batch[1],
@@ -78,18 +102,22 @@ def train(train_dataset, eval_dataset, model, processor, config, freeze_model=Fa
             outputs = model(**inputs)
             loss, logits = outputs[:2]  # model outputs are always tuple in pytorch-transformers (see doc)
 
+            # handle multi-gpus run
             if config["n_gpu"] > 1:
                 loss = loss.mean()
             print("\r%f" % loss, end='')
+            epoch_losses.append(loss.item())
 
             if config['task_name'] == "multi-label":
                 train_acc += accuracy_thresh(logits, inputs["labels"])
             else:
                 train_acc += get_accuracy(logits.detach().cpu().numpy(), batch[3].detach().cpu().numpy())
 
+            # gradient accumulation
             if config['gradient_accumulation_steps'] > 1:
                 loss = loss / config['gradient_accumulation_steps']
 
+            # optimization
             if config['fp16']:
                 with amp.scale_loss(loss, optimizer) as scaled_loss:
                     scaled_loss.backward()
@@ -128,5 +156,8 @@ def train(train_dataset, eval_dataset, model, processor, config, freeze_model=Fa
             results = evaluate(eval_dataset, model, processor, config, epoch)
             for key, value in results["scalars"].items():
                 neptune.log_metric.add_scalar(name='eval_{}'.format(key), y=value, x=epoch)
+
+        # sending data to tensordash
+        histories.sendLoss(loss=np.mean(epoch_losses), epoch=epoch, total_epochs=int(config['num_train_epochs']))
 
     return global_step, tr_loss / global_step

@@ -687,6 +687,17 @@ six = "*"
 
 [[package]]
 category = "main"
+description = "A python package that lets you remotely monitor your deep learning training metrics through it's companion app."
+name = "tensor-dash"
+optional = false
+python-versions = "*"
+version = "1.8.1"
+
+[package.dependencies]
+requests = "*"
+
+[[package]]
+category = "main"
 description = "threadpoolctl"
 name = "threadpoolctl"
 optional = false
@@ -850,7 +861,7 @@ docs = ["sphinx", "jaraco.packaging (>=3.2)", "rst.linker (>=1.9)"]
 testing = ["pytest (>=3.5,<3.7.3 || >3.7.3)", "pytest-checkdocs (>=1.2.3)", "pytest-flake8", "pytest-cov", "jaraco.test (>=3.2.0)", "jaraco.itertools", "func-timeout", "pytest-black (>=0.3.7)", "pytest-mypy"]
 
 [metadata]
-content-hash = "213277d1df1aed68ca12a01a5ef4ff2ba1e15841228a0e6063f797987e2f7052"
+content-hash = "5f9c061f5be513234741e7e8dd73ac87e06b857aec8e867a3c28658f59832518"
 lock-version = "1.0"
 python-versions = "^3.7"
 
@@ -1313,6 +1324,10 @@ strict-rfc3339 = [
 swagger-spec-validator = [
     {file = "swagger-spec-validator-2.7.3.tar.gz", hash = "sha256:f4f23ee4dbd52bfcde90b1144dde22304add6260e9f29252e9fd7814c9b8fd16"},
     {file = "swagger_spec_validator-2.7.3-py2.py3-none-any.whl", hash = "sha256:d1514ec7e3c058c701f27cc74f85ceb876d6418c9db57786b9c54085ed5e29eb"},
+]
+tensor-dash = [
+    {file = "tensor-dash-1.8.1.tar.gz", hash = "sha256:2599df4b1d71db7196637fc61215bfe5ab57a9b19495bbfe082ebd0d245d5e69"},
+    {file = "tensor_dash-1.8.1-py3-none-any.whl", hash = "sha256:871dcf418aefc58ee65b633d72b418d106bb97a8ce064c00fc4f1118b3eb911d"},
 ]
 threadpoolctl = [
     {file = "threadpoolctl-2.1.0-py3-none-any.whl", hash = "sha256:38b74ca20ff3bb42caca8b00055111d74159ee95c4370882bbff2b93d24da725"},

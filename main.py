@@ -2,6 +2,7 @@ import argparse
 import logging
 import neptune
 import os
+from tensordash.torchdash import Torchdash
 
 import torch
 from dotenv import load_dotenv
