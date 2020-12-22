@@ -67,12 +67,14 @@ config = Config(
     num_labels=6,
     labels=multi_label_labels,
     class_weights=[],
+    pos_weight=[10.433569, 100.044514, 18.886377, 333.830544, 20.257839, 113.573665],
+    use_pos_weight=True,
     truncate_mode="head_tail",
 
     gradient_accumulation_steps=1,
     num_train_epochs=5,
     weight_decay=0,
-    learning_rate=2e-5,
+    learning_rate=1e-5,
     adam_epsilon=1e-8,
     warmup_ratio=0.06,
     warmup_steps=False,
@@ -80,7 +82,7 @@ config = Config(
 
     logging_steps=100,
     evaluate_during_training=True,
-    save_steps=50000,
+    save_steps=10000,
     eval_all_checkpoints=True,
     get_mismatched=True,
 

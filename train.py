@@ -3,10 +3,10 @@ import math
 import os
 from datetime import datetime
 
+import matplotlib.pyplot as plt
 import neptune
-import numpy as np
+from neptunecontrib.api import log_chart
 import torch
-from tensordash.torchdash import Torchdash
 from torch.utils.data import DataLoader, RandomSampler
 from tqdm import trange, tqdm
 from transformers import AdamW, get_linear_schedule_with_warmup
@@ -17,22 +17,15 @@ from utils.metrics import get_accuracy, accuracy_thresh
 
 def train(train_dataset, eval_dataset, model, processor, config, freeze_model=False):
     """
-    :param train_dataset:
-    :param eval_dataset:
-    :param model:
-    :param processor:
-    :param config:
-    :param freeze_model:
-    :return:
+    :param train_dataset: iterator on the training set
+    :param eval_dataset: iterator on the test set
+    :param model: instance of the model to train
+    :param processor: processor object used for evaluation
+    :param config: Config
+    :param freeze_model: whether or not to freeze BERT
     """
     # creating a neptune experiment
     neptune.create_experiment(name=str(datetime.now()), params=config, upload_source_files=['*.py'])
-
-    # setting up tensor-dash
-    histories = Torchdash(
-        ModelName=config["model_type"],
-        email=os.environ["TD_EMAIL"],
-        password=os.environ["TD_PWD"])
 
     train_sampler = RandomSampler(train_dataset)
     train_dataloader = DataLoader(train_dataset, sampler=train_sampler, batch_size=config['train_batch_size'],
@@ -134,10 +127,10 @@ def train(train_dataset, eval_dataset, model, processor, config, freeze_model=Fa
                 global_step += 1
 
                 if config['logging_steps'] > 0 and global_step % config['logging_steps'] == 0:
-                    neptune.log_metric(name='lr', y=scheduler.get_lr()[0], x=global_step)
-                    neptune.log_metric(name='train_loss', y=(tr_loss - logging_loss) / config['logging_steps'],
+                    neptune.log_metric(log_name='lr', y=scheduler.get_lr()[0], x=global_step)
+                    neptune.log_metric(log_name='train_loss', y=(tr_loss - logging_loss) / config['logging_steps'],
                                        x=global_step)
-                    neptune.log_metric(name='train_acc', y=train_acc / config['logging_steps'], x=global_step)
+                    neptune.log_metric(log_name='train_acc', y=train_acc / config['logging_steps'], x=global_step)
                     logging_loss = tr_loss
                     train_acc = 0.0
 
@@ -149,15 +142,21 @@ def train(train_dataset, eval_dataset, model, processor, config, freeze_model=Fa
                     model_to_save = model.module if hasattr(model,
                                                             'module') else model  # Take care of distributed/parallel training
                     model_to_save.save_pretrained(output_dir)
+                    neptune.log_artifact(os.path.join(output_dir, "pytorch_model.bin"))
                     logging.info("Saving model checkpoint to %s", output_dir)
 
         # Log metrics
         if config['evaluate_during_training']:
             results = evaluate(eval_dataset, model, processor, config, epoch)
             for key, value in results["scalars"].items():
-                neptune.log_metric.add_scalar(name='eval_{}'.format(key), y=value, x=epoch)
+                neptune.log_metric(log_name='eval_{}'.format(key), y=value, x=epoch)
 
-        # sending data to tensordash
-        histories.sendLoss(loss=np.mean(epoch_losses), epoch=epoch, total_epochs=int(config['num_train_epochs']))
+            if "labels_probs" in results["arrays"].keys():
+                labels_probs = results["arrays"]["labels_probs"]
+                for i in range(labels_probs.shape[0]):
+                    fig = plt.figure(figsize=(8, 8))
+                    plt.boxplot(labels_probs[i], vert=False)
+                    plt.title("Probability boxplot for label {}".format(i))
+                    log_chart("dist_label_{}".format(i), fig)
 
     return global_step, tr_loss / global_step

@@ -2,7 +2,6 @@ import argparse
 import logging
 import neptune
 import os
-from tensordash.torchdash import Torchdash
 
 import torch
 from dotenv import load_dotenv
@@ -28,7 +27,6 @@ def parse_flags():
 
 def run(args):
     """"""
-
     # setting up neptune experiment
     neptune.init(api_token=os.environ["NEPTUNE_API_TOKEN"],
                  project_qualified_name='julesbelveze/{}'.format(config["model_type"]))

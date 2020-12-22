@@ -5,36 +5,53 @@ from sklearn.metrics import classification_report, accuracy_score, f1_score, pre
     roc_curve
 
 
-def accuracy_thresh(logits, y_true, thresh: float = 0.5):
-    """"""
-    return torch.mean(((logits > thresh) == y_true).float())
+def accuracy_thresh(probs, y_true, thresh: float = 0.5):
+    """
+    :param probs: tensor of probabilities
+    :param y_true: tensor of ground truth label
+    :param thresh: probability threshold for assigning class 1
+    :return: accuracy
+    """
+    return torch.mean(((probs > thresh) == y_true).float())
 
 
-def hamming_loss(logits, y_true, thresh: float = 0.5):
-    '''hamming loss: fraction of labels that are incorrectly predicted'''
-    preds = (logits > thresh)
+def hamming_loss(probs, y_true, thresh: float = 0.5):
+    """
+    Hamming loss: fraction of labels that are incorrectly predicted
+    https://en.wikipedia.org/wiki/Multi-label_classification
+    :param probs: tensor of probabilities
+    :param y_true: tensor of ground truth label
+    :param thresh: probability threshold for assigning class 1
+    :return : hamming loss
+    """
+    preds = (probs > thresh)
     return (preds != y_true).mean()
 
 
-def get_roc_auc(logits, y_true):
-    """"""
+def get_roc_auc(probs, y_true):
+    """
+    :param probs: tensor of probabilities
+    :param y_true: tensor of ground truth label
+    :return: fpr, tpr, roc_auc
+    """
     fpr, tpr, roc_auc = {}, {}, {}
     # ROC for each class
-    for i in range(len(labels)):
-        fpr[i], tpr[i], _ = roc_curve(y_true[:, i], logits[:, i])
+    for i in range(probs.shape[1]):
+        fpr[i], tpr[i], _ = roc_curve(y_true[:, i], probs[:, i])
         roc_auc[i] = auc(fpr[i], tpr[i])
     # micro-average ROC
-    fpr["micro"], tpr["micro"], _ = roc_curve(y_true.ravel(), logits.ravel())
+    fpr["micro"], tpr["micro"], _ = roc_curve(y_true.ravel(), probs.ravel())
     roc_auc["micro"] = auc(fpr["micro"], tpr["micro"])
     return fpr, tpr, roc_auc
 
 
-def subset_accuracy(logits, y_true, thresh: float = 0.5):
-    '''percentage of samples that hav
-
-
-    l their labels classified correctly'''
-    preds = (logits > thresh)
+def subset_accuracy(probs, y_true, thresh: float = 0.5):
+    """Percentage of samples that have their labels classified correctly
+    :param probs: tensor of probabilities
+    :param y_true: tensor of ground truth label
+    :param thresh: probability threshold for assigning class 1
+    """
+    preds = (probs > thresh)
     return accuracy_score(y_true, preds)
 
 
@@ -45,14 +62,21 @@ def get_accuracy(preds, labels):
     return np.sum(pred_flat == labels_flat) / len(labels_flat)
 
 
-def get_multi_label_report(targets, logits, flatten_output=False, thresh: float = 0.5):
-    """"""
-    fpr, tpr, roc_auc = get_roc_auc(logits, targets)
-    hamming = hamming_loss(logits, targets, thresh=thresh)
-    acc = accuracy_thresh(torch.tensor(logits), torch.tensor(targets), thresh=thresh)
-    subset_acc = subset_accuracy(logits, targets, thresh=thresh)
+def get_multi_label_report(targets, probs, flatten_output=False, thresh: float = 0.5):
+    """
 
-    preds = (logits > thresh)
+    :param targets: tensor of ground truth labels
+    :param probs: tensor of probabilities
+    :param flatten_output: whether or not to return a dict with variable types as keys
+    :param thresh: probability threshold to assign class 1
+    :return:
+    """
+    fpr, tpr, roc_auc = get_roc_auc(probs, targets)
+    hamming = hamming_loss(probs, targets, thresh=thresh)
+    acc = accuracy_thresh(torch.tensor(probs), torch.tensor(targets), thresh=thresh)
+    subset_acc = subset_accuracy(probs, targets, thresh=thresh)
+
+    preds = (probs > thresh)
     report = classification_report(targets, preds)
     return {
         "scalars": {"auc_micro": roc_auc["micro"], "acc": acc, "subset_acc": subset_acc, "hamming": hamming},
@@ -94,10 +118,19 @@ def get_eval_report(preds, probs, targets, loss_eval, config, flatten_output=Fal
     }
 
 
-def get_mismatched(labels, preds, processor, config, save=True):
-    """"""
+def get_mismatched(labels, preds, processor, config, save=True, thresh=0.5):
+    """
+    Function to save mislabeled observations.
+    :param labels:
+    :param preds:
+    :param processor:
+    :param config:
+    :param save:
+    :param thresh:
+    :return:
+    """
     if config["output_mode"] == "multi-label-classification":
-        mismatched = (labels > 0.5) != preds
+        mismatched = (labels > thresh) != preds
         processor = processor(labels, config["truncate_mode"])
     else:
         mismatched = labels != preds
