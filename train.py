@@ -5,7 +5,6 @@ from datetime import datetime
 
 import matplotlib.pyplot as plt
 import neptune
-from neptunecontrib.api import log_chart
 import torch
 from torch.utils.data import DataLoader, RandomSampler
 from tqdm import trange, tqdm
@@ -142,8 +141,9 @@ def train(train_dataset, eval_dataset, model, processor, config, freeze_model=Fa
                     model_to_save = model.module if hasattr(model,
                                                             'module') else model  # Take care of distributed/parallel training
                     model_to_save.save_pretrained(output_dir)
-                    neptune.log_artifact(os.path.join(output_dir, "pytorch_model.bin"))
                     logging.info("Saving model checkpoint to %s", output_dir)
+                    neptune.log_artifact(os.path.join(output_dir, "pytorch_model.bin"),
+                                         "pytorch_model_{}.bin".format(global_step))
 
         # Log metrics
         if config['evaluate_during_training']:
@@ -157,6 +157,7 @@ def train(train_dataset, eval_dataset, model, processor, config, freeze_model=Fa
                     fig = plt.figure(figsize=(8, 8))
                     plt.boxplot(labels_probs[i], vert=False)
                     plt.title("Probability boxplot for label {}".format(i))
-                    log_chart("dist_label_{}".format(i), fig)
+                    neptune.log_image("matplotlib-fig", fig, image_name="dist_label_{}_epoch_{}".format(i, epoch))
+                    plt.close("all")
 
     return global_step, tr_loss / global_step
