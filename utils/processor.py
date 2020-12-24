@@ -45,12 +45,12 @@ class DataProcessor(object):
 
     def get_train_examples(self, data_dir: str):
         """Gets a collection of `InputExample`s for the train set."""
-        data_df = pd.read_csv(os.path.join(data_dir, "train.csv"), nrows=100)
+        data_df = pd.read_csv(os.path.join(data_dir, "train.csv"))
         return self._create_examples(data_df)
 
     def get_test_examples(self, data_dir: str):
         """Gets a collection of `InputExample`s for the dev set."""
-        data_df = pd.read_csv(os.path.join(data_dir, "test.csv"), nrows=100)
+        data_df = pd.read_csv(os.path.join(data_dir, "test.csv"))
         return self._create_examples(data_df)
 
     def get_labels(self):

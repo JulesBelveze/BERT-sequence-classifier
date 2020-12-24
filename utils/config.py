@@ -35,6 +35,14 @@ class Config(dict):
         self[key] = value
         setattr(self, key, value)
 
+    def update(self, other=None, **kwargs):
+        if other is not None:
+            for key, value in other.items():
+                self.set(key, value)
+
+        for key, value in kwargs.items():
+            self.set(key, value)
+
     @property
     def model_config(self):
         try:
