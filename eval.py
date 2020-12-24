@@ -7,6 +7,7 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader, SequentialSampler
 from tqdm import tqdm
 
+from utils import device
 from utils.metrics import get_eval_report, get_mismatched, get_multi_label_report
 
 
@@ -31,7 +32,7 @@ def evaluate(eval_dataset, model, processor, config, epoch=None, prefix=""):
 
     for batch in tqdm(eval_dataloader, desc="Evaluating"):
         model.eval()
-        batch = tuple(t.to(config["device"]) for t in batch)
+        batch = tuple(t.to(device) for t in batch)
 
         with torch.no_grad():
             if 'distilbert' not in config['model_type']:

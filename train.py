@@ -11,6 +11,7 @@ from tqdm import trange, tqdm
 from transformers import AdamW, get_linear_schedule_with_warmup
 
 from eval import evaluate
+from utils import device
 from utils.metrics import get_accuracy, accuracy_thresh
 
 
@@ -24,7 +25,8 @@ def train(train_dataset, eval_dataset, model, processor, config, freeze_model=Fa
     :param freeze_model: whether or not to freeze BERT
     """
     # creating a neptune experiment
-    neptune.create_experiment(name=str(datetime.now()), params=config, upload_source_files=['*.py'])
+    neptune.create_experiment(name="{}_{}".format(config["model_type"], str(datetime.now())), params=config,
+                              upload_source_files=['*.py', "models/", "utils/"], tags=[config["model_type"]])
 
     train_sampler = RandomSampler(train_dataset)
     train_dataloader = DataLoader(train_dataset, sampler=train_sampler, batch_size=config['train_batch_size'],
@@ -79,7 +81,7 @@ def train(train_dataset, eval_dataset, model, processor, config, freeze_model=Fa
         epoch_losses = []
         for step, batch in enumerate(tqdm(train_dataloader, desc="Iteration")):
             model.train()
-            batch = tuple(t.to(config['device']) for t in batch)
+            batch = tuple(t.to(device) for t in batch)
 
             if 'distilbert' not in config['model_type']:
                 inputs = {'input_ids': batch[0],

@@ -1,2 +1,5 @@
 from .bert_multi_label import BertForMultiLabelSequenceClassification
 from .bert_weighted_loss import BertWithWeightedLoss
+from .distilbert_multi_label import DistilBertForMultiLabelSequenceClassification
+from .roberta_multi_label import RobertaForMultiLabelSequenceClassification, \
+    XLMRobertaForMultiLabelSequenceClassification
