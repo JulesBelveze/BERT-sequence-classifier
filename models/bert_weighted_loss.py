@@ -2,12 +2,14 @@ import torch
 from torch.nn import CrossEntropyLoss
 from transformers import BertForSequenceClassification
 
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
 
 class BertWithWeightedLoss(BertForSequenceClassification):
     def __init__(self, config):
         super().__init__(config)
-        self.num_labels = config["num_labels"]
-        self.class_weights = torch.tensor(config["class_weights"]).to(config["device"])
+        self.num_labels = config.num_labels
+        self.class_weights = torch.tensor(config.class_weights).to(device)
 
     def forward(
             self,

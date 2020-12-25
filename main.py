@@ -1,14 +1,14 @@
 import argparse
 import logging
-import neptune
 import os
 
+import neptune
 import torch
 from dotenv import load_dotenv
 
 from eval import evaluate
 from train import train
-from utils import config, Dataset, processors
+from utils import config, Dataset, processors, device
 
 
 def parse_flags():
@@ -29,8 +29,9 @@ def run(args):
     """"""
     # setting up neptune experiment
     neptune.init(api_token=os.environ["NEPTUNE_API_TOKEN"],
-                 project_qualified_name='julesbelveze/{}'.format(config["model_type"]))
+                 project_qualified_name='julesbelveze/multi-label-classifier')
 
+    # updating config with the provided flags
     config.update(args)
     logging.info("Used config: {}".format(config))
 
@@ -43,15 +44,16 @@ def run(args):
         num_labels=config["num_labels"],
         finetuning_task=config["task_name"]
     )
+    model_config.update(config)
 
     tokenizer = tokenizer_class.from_pretrained(config["tokenizer_name"])
-    model = model_class(model_config).to(config["device"])
+    model = model_class(model_config).to(device)
 
     processor = processors[config["task_name"]]
 
     # resume training
     if config["model_path"]:
-        model.load_state_dict(torch.load(config["model_path"], map_location=config["device"]))
+        model.load_state_dict(torch.load(config["model_path"], map_location=device))
 
     # creating dataset object
     dataset = Dataset(task=config["task_name"], tokenizer=tokenizer, processor=processor, labels=config["labels"],

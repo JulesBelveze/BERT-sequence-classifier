@@ -1,9 +1,9 @@
 import logging
 import os
-import numpy as np
 from multiprocessing import Pool, cpu_count
 from typing import List
 
+import numpy as np
 import pandas as pd
 from pandas import DataFrame
 from tqdm import tqdm

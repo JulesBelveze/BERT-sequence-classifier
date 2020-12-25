@@ -1,10 +1,21 @@
 import torch
-from models import BertForMultiLabelSequenceClassification, BertWithWeightedLoss
-from transformers import (BertConfig, BertTokenizer)
+from transformers import (BertConfig, BertTokenizer,
+                          DistilBertConfig, DistilBertTokenizer,
+                          RobertaConfig, RobertaTokenizer,
+                          XLMRobertaConfig, XLMRobertaTokenizer)
+
+from models import BertForMultiLabelSequenceClassification, BertWithWeightedLoss, \
+    DistilBertForMultiLabelSequenceClassification, RobertaForMultiLabelSequenceClassification, \
+    XLMRobertaForMultiLabelSequenceClassification
 from .processor import MultiLabelProcessor, MultiClassProcessor
+
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 MODEL_CLASSES = {
     'bert-multi-label': (BertConfig, BertForMultiLabelSequenceClassification, BertTokenizer),
+    'distilbert-multi-label': (DistilBertConfig, DistilBertForMultiLabelSequenceClassification, DistilBertTokenizer),
+    'roberta-multi-label': (RobertaConfig, RobertaForMultiLabelSequenceClassification, RobertaTokenizer),
+    'xlm-roberta-multi-label': (XLMRobertaConfig, XLMRobertaForMultiLabelSequenceClassification, XLMRobertaTokenizer),
     'bert-weighted': (BertConfig, BertWithWeightedLoss, BertTokenizer)
 }
 
@@ -23,6 +34,14 @@ class Config(dict):
     def set(self, key, value):
         self[key] = value
         setattr(self, key, value)
+
+    def update(self, other=None, **kwargs):
+        if other is not None:
+            for key, value in other.items():
+                self.set(key, value)
+
+        for key, value in kwargs.items():
+            self.set(key, value)
 
     @property
     def model_config(self):
@@ -48,12 +67,14 @@ class Config(dict):
 
 multi_label_labels = ["toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"]
 
+# check https://huggingface.co/transformers/pretrained_models.html?highlight=pretrained for
+# the list of pretrained models.
+
 config = Config(
-    device=torch.device('cuda' if torch.cuda.is_available() else 'cpu'),
     data_dir='data/',
-    model_type='bert-multi-label',
-    model_name='bert-base-uncased',
-    tokenizer_name='bert-base-uncased',
+    model_type='xlm-roberta-multi-label',
+    model_name='xlm-roberta-base',
+    tokenizer_name='xlm-roberta-base',
     task_name='multi-label',
     output_dir='outputs/',
     cache_dir='cache/',
@@ -61,6 +82,7 @@ config = Config(
     fp16_opt_level='O1',
     n_gpu=torch.cuda.device_count(),
     max_seq_length=512,
+    hidden_dropout_prob=.2,
     output_mode='multi-label-classification',
     train_batch_size=8,
     eval_batch_size=8,
@@ -80,9 +102,9 @@ config = Config(
     warmup_steps=False,
     max_grad_norm=0.25,
 
-    logging_steps=100,
+    logging_steps=200,
     evaluate_during_training=True,
-    save_steps=10000,
+    save_steps=20000,
     eval_all_checkpoints=True,
     get_mismatched=True,
 
