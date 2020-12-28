@@ -22,6 +22,7 @@ def parse_flags():
     parser.add_argument("--model-name", type=str, default=config["model_name"])
     parser.add_argument("--tokenizer-name", type=str, default=config["tokenizer_name"])
     parser.add_argument("--task-name", type=str, default=config["task_name"])
+    parser.add_argument("--tags", nargs='+')
     return parser.parse_args()
 
 

@@ -50,6 +50,10 @@ def evaluate(eval_dataset, model, processor, config, epoch=None, prefix=""):
 
             eval_loss += tmp_eval_loss.mean().item()
 
+            # converting the output into a probability
+            if config['output_mode'] == "multi-label-classification":
+                logits = logits.sigmoid()
+
         if preds is None:
             preds = logits.detach().cpu().numpy()
             target_label = inputs['labels'].detach().cpu().numpy()

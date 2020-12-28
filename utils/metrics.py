@@ -63,6 +63,27 @@ def get_accuracy(preds, labels):
     return np.sum(pred_flat == labels_flat) / len(labels_flat)
 
 
+def get_multi_metrics(preds: torch.Tensor, labels: torch.Tensor):
+    """
+    Multi metrics computation for multi-label classification problems.
+    :param preds: tensor of predictions
+    :param labels: tensor of ground truth
+    :return:
+    """
+    tp = (labels * preds).sum().to(torch.float32)
+    tn = ((1 - labels) * (1 - preds)).sum().to(torch.float32)
+    fp = ((1 - labels) * preds).sum().to(torch.float32)
+    fn = (labels * (1 - preds)).sum().to(torch.float32)
+
+    epsilon = 1e-7
+
+    precision = tp / (tp + fp + epsilon)
+    recall = tp / (tp + fn + epsilon)
+
+    f1 = 2 * (precision * recall) / (precision + recall + epsilon)
+    return f1, tp, tn, fp, fn, precision, recall
+
+
 def get_multi_label_report(targets, probs, flatten_output=False, thresh: float = 0.5):
     """
 
@@ -78,16 +99,26 @@ def get_multi_label_report(targets, probs, flatten_output=False, thresh: float =
     subset_acc = subset_accuracy(probs, targets, thresh=thresh)
 
     preds = (probs > thresh)
+    labels_probs = np.array([probs[:, i] for i in range(probs.shape[1])])
     report = classification_report(targets, preds)
+    f1, tp, tn, fp, fn, prec, rec = get_multi_metrics(torch.FloatTensor(preds), torch.FloatTensor(targets))
     return {
-        "scalars": {"auc_micro": roc_auc["micro"], "acc": acc, "subset_acc": subset_acc, "hamming": hamming},
+        "scalars": {"auc_micro": roc_auc["micro"], "acc": acc, "subset_acc": subset_acc, "hamming": hamming, "f1": f1,
+                    "tp": tp, "tn": tn, "fp": fp, "fn": fn, "prec": prec, "rec": rec},
         "dict": {"report": report},
-        "arrays": {"fpr": fpr, "tpr": tpr, "auc": roc_auc}
+        "arrays": {"fpr": fpr, "tpr": tpr, "auc": roc_auc, "labels_probs": labels_probs}
     } if not flatten_output else {
         "fpr": fpr,
         "tpr": tpr,
         "auc": roc_auc,
         "acc": acc,
+        "f1": f1,
+        "tp": tp,
+        "tn": tn,
+        "fp": fp,
+        "fn": fn,
+        "prec": prec,
+        "rec": rec,
         "subset_acc": subset_acc,
         "hamming": hamming,
         "report": report

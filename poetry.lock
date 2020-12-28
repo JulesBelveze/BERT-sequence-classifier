@@ -734,6 +734,20 @@ numpy = ">=1.14.5"
 
 [[package]]
 category = "main"
+description = "seaborn: statistical data visualization"
+name = "seaborn"
+optional = false
+python-versions = ">=3.6"
+version = "0.11.1"
+
+[package.dependencies]
+matplotlib = ">=2.2"
+numpy = ">=1.15"
+pandas = ">=0.23"
+scipy = ">=1.0"
+
+[[package]]
+category = "main"
 description = "SentencePiece python wrapper"
 name = "sentencepiece"
 optional = false
@@ -950,7 +964,7 @@ docs = ["sphinx", "jaraco.packaging (>=3.2)", "rst.linker (>=1.9)"]
 testing = ["pytest (>=3.5,<3.7.3 || >3.7.3)", "pytest-checkdocs (>=1.2.3)", "pytest-flake8", "pytest-cov", "jaraco.test (>=3.2.0)", "jaraco.itertools", "func-timeout", "pytest-black (>=0.3.7)", "pytest-mypy"]
 
 [metadata]
-content-hash = "9d04e89695ee02378287a2310325a3908dc6e7319b4496330e28b7a4ce28b2d1"
+content-hash = "1456a7af79ed50f324f4ab63523ec72a6a6ccb5c06a7241e9446a3682fdd2eec"
 lock-version = "1.0"
 python-versions = "^3.7"
 
@@ -1457,6 +1471,10 @@ scipy = [
     {file = "scipy-1.5.4-cp39-cp39-win32.whl", hash = "sha256:d84cadd7d7998433334c99fa55bcba0d8b4aeff0edb123b2a1dfcface538e474"},
     {file = "scipy-1.5.4-cp39-cp39-win_amd64.whl", hash = "sha256:cc1f78ebc982cd0602c9a7615d878396bec94908db67d4ecddca864d049112f2"},
     {file = "scipy-1.5.4.tar.gz", hash = "sha256:4a453d5e5689de62e5d38edf40af3f17560bfd63c9c5bd228c18c1f99afa155b"},
+]
+seaborn = [
+    {file = "seaborn-0.11.1-py3-none-any.whl", hash = "sha256:4e1cce9489449a1c6ff3c567f2113cdb41122f727e27a984950d004a88ef3c5c"},
+    {file = "seaborn-0.11.1.tar.gz", hash = "sha256:44e78eaed937c5a87fc7a892c329a7cc091060b67ebd1d0d306b446a74ba01ad"},
 ]
 sentencepiece = [
     {file = "sentencepiece-0.1.94-cp35-cp35m-macosx_10_6_x86_64.whl", hash = "sha256:7b6c794d30272a5e635e958fdb4976dd991bf35eed90441104a042b2e51723c7"},
