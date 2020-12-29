@@ -145,3 +145,5 @@ runs/
 train.sh
 data/multi_class/
 data/multi_label/
+checkpoints/
+outputs/

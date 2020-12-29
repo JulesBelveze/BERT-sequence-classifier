@@ -1,11 +1,12 @@
 import torch
 from torch.nn import CrossEntropyLoss
-from transformers import BertForSequenceClassification
+from transformers import RobertaForSequenceClassification
+from transformers.models.xlm_roberta import XLMRobertaConfig
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
-class BertWithWeightedLoss(BertForSequenceClassification):
+class RobertaWithWeightedLoss(RobertaForSequenceClassification):
     def __init__(self, config):
         super().__init__(config)
         self.num_labels = config.num_labels
@@ -14,7 +15,7 @@ class BertWithWeightedLoss(BertForSequenceClassification):
     def forward(self, input_ids=None, attention_mask=None, token_type_ids=None, position_ids=None, head_mask=None,
                 inputs_embeds=None, labels=None):
         """"""
-        outputs = self.bert(
+        outputs = self.roberta(
             input_ids,
             attention_mask=attention_mask,
             token_type_ids=token_type_ids,
@@ -22,14 +23,10 @@ class BertWithWeightedLoss(BertForSequenceClassification):
             head_mask=head_mask,
             inputs_embeds=inputs_embeds,
         )
+        sequence_output = outputs[0]
+        logits = self.classifier(sequence_output)
 
-        pooled_output = outputs[1]
-
-        pooled_output = self.dropout(pooled_output)
-        logits = self.classifier(pooled_output)
-
-        outputs = (logits,) + outputs[2:]  # add hidden states and attention if they are here
-
+        outputs = (logits,) + outputs[2:]
         if labels is not None:
             loss_fct = CrossEntropyLoss(weight=self.class_weights) if self.class_weights is not None \
                 else CrossEntropyLoss()
@@ -37,3 +34,7 @@ class BertWithWeightedLoss(BertForSequenceClassification):
             outputs = (loss,) + outputs
 
         return outputs  # (loss), logits, (hidden_states), (attentions)
+
+
+class XLMRobertaWithWeightedLoss(RobertaWithWeightedLoss):
+    config_class = XLMRobertaConfig
