@@ -22,7 +22,8 @@ def parse_flags():
     parser.add_argument("--model-name", type=str, default=config["model_name"])
     parser.add_argument("--tokenizer-name", type=str, default=config["tokenizer_name"])
     parser.add_argument("--task-name", type=str, default=config["task_name"])
-    parser.add_argument("--tags", nargs='+')
+    parser.add_argument("--neptune-project", type=str, default="multi-label-classifier")
+    parser.add_argument("--tags", nargs='+', default=[])
     return parser.parse_args()
 
 
@@ -30,7 +31,7 @@ def run(args):
     """"""
     # setting up neptune experiment
     neptune.init(api_token=os.environ["NEPTUNE_API_TOKEN"],
-                 project_qualified_name='julesbelveze/multi-label-classifier')
+                 project_qualified_name='julesbelveze/{}'.format(args["neptune_project"]))
 
     # updating config with the provided flags
     config.update(args)

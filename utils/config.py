@@ -66,6 +66,7 @@ class Config(dict):
 
 
 multi_label_labels = ["toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"]
+multi_class_labels = ["VLDB", "ISCAS", "SIGGRAPH", "INFOCOM", "WWW"]
 
 # check https://huggingface.co/transformers/pretrained_models.html?highlight=pretrained for
 # the list of pretrained models.
@@ -87,8 +88,9 @@ config = Config(
     train_batch_size=8,
     eval_batch_size=8,
     num_labels=6,
-    labels=multi_label_labels,
-    class_weights=[],
+    labels=multi_class_labels,
+    class_weights=[0.57041252, 0.97094431, 1.3147541 , 1.57874016, 1.21515152],
+    use_class_weights=True,
     pos_weight=[10.433569, 100.044514, 18.886377, 333.830544, 20.257839, 113.573665],
     use_pos_weight=True,
     truncate_mode="head_tail",

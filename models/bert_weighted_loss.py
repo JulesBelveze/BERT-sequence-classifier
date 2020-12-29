@@ -9,7 +9,7 @@ class BertWithWeightedLoss(BertForSequenceClassification):
     def __init__(self, config):
         super().__init__(config)
         self.num_labels = config.num_labels
-        self.class_weights = torch.tensor(config.class_weights).to(device)
+        self.class_weights = torch.tensor(config.class_weights).to(device) if config.use_class_weights else None
 
     def forward(
             self,
@@ -70,7 +70,8 @@ class BertWithWeightedLoss(BertForSequenceClassification):
         outputs = (logits,) + outputs[2:]  # add hidden states and attention if they are here
 
         if labels is not None:
-            loss_fct = CrossEntropyLoss(weight=self.class_weights)
+            loss_fct = CrossEntropyLoss(weight=self.class_weights) if self.class_weights is not None \
+                else CrossEntropyLoss()
             loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
             outputs = (loss,) + outputs
 
