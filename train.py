@@ -5,7 +5,9 @@ from datetime import datetime
 
 import matplotlib.pyplot as plt
 import neptune
+from neptunecontrib.api import log_chart
 import torch
+import seaborn as sns
 from torch.utils.data import DataLoader, RandomSampler
 from tqdm import trange, tqdm
 from transformers import AdamW, get_linear_schedule_with_warmup
@@ -25,8 +27,10 @@ def train(train_dataset, eval_dataset, model, processor, config, freeze_model=Fa
     :param freeze_model: whether or not to freeze BERT
     """
     # creating a neptune experiment
-    neptune.create_experiment(name="{}_{}".format(config["model_type"], str(datetime.now())), params=config,
-                              upload_source_files=['*.py', "models/", "utils/"], tags=[config["model_type"]])
+    neptune.create_experiment(name="{}_{}".format(config["model_type"], str(datetime.now())),
+                              params=config,
+                              upload_source_files=['*.py', "models/", "utils/"],
+                              tags=[config["model_type"]] + config["tags"])
 
     train_sampler = RandomSampler(train_dataset)
     train_dataloader = DataLoader(train_dataset, sampler=train_sampler, batch_size=config['train_batch_size'],
@@ -103,6 +107,8 @@ def train(train_dataset, eval_dataset, model, processor, config, freeze_model=Fa
             epoch_losses.append(loss.item())
 
             if config['task_name'] == "multi-label":
+                with torch.no_grad():
+                    logits = logits.sigmoid()
                 train_acc += accuracy_thresh(logits, inputs["labels"])
             else:
                 train_acc += get_accuracy(logits.detach().cpu().numpy(), batch[3].detach().cpu().numpy())
@@ -156,10 +162,10 @@ def train(train_dataset, eval_dataset, model, processor, config, freeze_model=Fa
             if "labels_probs" in results["arrays"].keys():
                 labels_probs = results["arrays"]["labels_probs"]
                 for i in range(labels_probs.shape[0]):
-                    fig = plt.figure(figsize=(8, 8))
-                    plt.boxplot(labels_probs[i], vert=False)
+                    fig = plt.figure(figsize=(15, 15))
+                    sns.distplot(labels_probs[i], kde=False, bins=100)
                     plt.title("Probability boxplot for label {}".format(i))
-                    neptune.log_image("matplotlib-fig", fig, image_name="dist_label_{}_epoch_{}".format(i, epoch))
+                    log_chart(name="dist_label_{}_epoch_{}".format(i, epoch), chart=fig)
                     plt.close("all")
 
     return global_step, tr_loss / global_step
