@@ -17,12 +17,14 @@ def parse_flags():
     parser.add_argument("--do-eval", default=False, type=lambda x: (str(x).lower() == 'true'))
     parser.add_argument("--model", default="bert-multi-label", type=str)
     parser.add_argument("--model-path", default=None, type=str)
+    parser.add_argument("--data-dir", default="data", type=str)
     parser.add_argument("--get-mismatched", default=False, type=lambda x: (str(x).lower() == 'true'))
     parser.add_argument("--model-type", type=str, default=config["model_type"])
     parser.add_argument("--model-name", type=str, default=config["model_name"])
     parser.add_argument("--tokenizer-name", type=str, default=config["tokenizer_name"])
     parser.add_argument("--task-name", type=str, default=config["task_name"])
-    parser.add_argument("--tags", nargs='+')
+    parser.add_argument("--neptune-project", type=str, default="multi-label-classifier")
+    parser.add_argument("--tags", nargs='+', default=[])
     return parser.parse_args()
 
 
@@ -30,7 +32,7 @@ def run(args):
     """"""
     # setting up neptune experiment
     neptune.init(api_token=os.environ["NEPTUNE_API_TOKEN"],
-                 project_qualified_name='julesbelveze/multi-label-classifier')
+                 project_qualified_name='julesbelveze/{}'.format(args["neptune_project"]))
 
     # updating config with the provided flags
     config.update(args)
@@ -70,6 +72,8 @@ def run(args):
 
     if config["do_eval"]:
         report = evaluate(test_dataset, model, processor, config)
+        logging.info("---------------------- Evaluation report ----------------------\n{}".format(report))
+
 
 
 if __name__ == "__main__":

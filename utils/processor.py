@@ -239,11 +239,11 @@ class MultiClassProcessor(DataProcessor):
         logging.info("Creating {} examples.".format(len(df)))
         logging.info("Sample row: {}".format(df.iloc[0]))
         examples = []
-        for row in df.values:
-            guid = row[0]
-            text_a = row[1]
+        for i, row in enumerate(df.values):
+            guid = i
+            text_a = row[0]
             if labels_available:
-                label = row[2]
+                label = row[1]
             else:
                 label = None
             examples.append(

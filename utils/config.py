@@ -5,8 +5,9 @@ from transformers import (BertConfig, BertTokenizer,
                           XLMRobertaConfig, XLMRobertaTokenizer)
 
 from models import BertForMultiLabelSequenceClassification, BertWithWeightedLoss, \
-    DistilBertForMultiLabelSequenceClassification, RobertaForMultiLabelSequenceClassification, \
-    XLMRobertaForMultiLabelSequenceClassification
+    DistilBertForMultiLabelSequenceClassification, DistilBertWithWeightedLoss, \
+    RobertaForMultiLabelSequenceClassification, RobertaWithWeightedLoss, \
+    XLMRobertaForMultiLabelSequenceClassification, XLMRobertaWithWeightedLoss
 from .processor import MultiLabelProcessor, MultiClassProcessor
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -16,7 +17,10 @@ MODEL_CLASSES = {
     'distilbert-multi-label': (DistilBertConfig, DistilBertForMultiLabelSequenceClassification, DistilBertTokenizer),
     'roberta-multi-label': (RobertaConfig, RobertaForMultiLabelSequenceClassification, RobertaTokenizer),
     'xlm-roberta-multi-label': (XLMRobertaConfig, XLMRobertaForMultiLabelSequenceClassification, XLMRobertaTokenizer),
-    'bert-weighted': (BertConfig, BertWithWeightedLoss, BertTokenizer)
+    'bert-weighted': (BertConfig, BertWithWeightedLoss, BertTokenizer),
+    'distilbert-weighted': (DistilBertConfig, DistilBertWithWeightedLoss, DistilBertTokenizer),
+    'roberta-weighted': (RobertaConfig, RobertaWithWeightedLoss, RobertaTokenizer),
+    'xlm-roberta-weighted': (XLMRobertaConfig, XLMRobertaWithWeightedLoss, XLMRobertaTokenizer)
 }
 
 processors = {
@@ -66,15 +70,16 @@ class Config(dict):
 
 
 multi_label_labels = ["toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"]
+multi_class_labels = ["VLDB", "ISCAS", "SIGGRAPH", "INFOCOM", "WWW"]
 
 # check https://huggingface.co/transformers/pretrained_models.html?highlight=pretrained for
 # the list of pretrained models.
 
 config = Config(
     data_dir='data/',
-    model_type='xlm-roberta-multi-label',
-    model_name='xlm-roberta-base',
-    tokenizer_name='xlm-roberta-base',
+    model_type='roberta-multi-label',
+    model_name='roberta-base',
+    tokenizer_name='roberta-base',
     task_name='multi-label',
     output_dir='outputs/',
     cache_dir='cache/',
@@ -88,7 +93,8 @@ config = Config(
     eval_batch_size=8,
     num_labels=6,
     labels=multi_label_labels,
-    class_weights=[],
+    class_weights=[0.57041252, 0.97094431, 1.3147541, 1.57874016, 1.21515152],
+    use_class_weights=True,
     pos_weight=[10.433569, 100.044514, 18.886377, 333.830544, 20.257839, 113.573665],
     use_pos_weight=True,
     truncate_mode="head_tail",
