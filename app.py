@@ -1,4 +1,3 @@
-import argparse
 import json
 import logging
 import os
@@ -13,36 +12,26 @@ load_dotenv()
 
 API_KEY = os.getenv("APP_APIKEY")
 app = Flask(__name__)
-
-
-def parse_flags():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--checkpoint", type=str)
-    parser.add_argument("--quantize", default=True, type=lambda x: (str(x).lower() == 'true'))
-    return parser.parse_args()
+checkpoint_path = "checkpoints/roberta_80000.bin"
 
 
 @app.route("/", methods=["GET", "POST"])
 def predictor() -> json:
-    flags = vars(parse_flags())
-    model_infer = ModelInferer(config=config, checkpoint_path=flags["checkpoint"], quantize=flags["quantize"])
-
-
-    if request.args.get("key") and request.args.get("key") == API_KEY:
-        text = request.form["data"]
-        prediction = model_infer.predict(text)
-        print(text)
-        print(prediction)
+    model_infer = ModelInferer(config=config, checkpoint_path=checkpoint_path, quantize=True)
+    try:
+        if request.args.get("key") and request.args.get("key") == API_KEY:
+            text = request.form["data"]
+            prediction = model_infer.predict(text)
+            return jsonify(
+                category=prediction
+            )
+        else:
+            abort(401)
+    except Exception as e:
+        logging.error(str(e))
         return jsonify(
-            category=prediction
+            category=None
         )
-    else:
-        abort(401)
-    # except Exception as e:
-    #     logging.warning(str(e))
-    #     return jsonify(
-    #         category=None
-    #     )
 
 
 if __name__ == "__main__":
