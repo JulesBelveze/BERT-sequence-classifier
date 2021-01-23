@@ -14,6 +14,7 @@ from utils import config, Dataset, processors, device
 def parse_flags():
     parser = argparse.ArgumentParser()
     parser.add_argument("--do-train", default=True, type=lambda x: (str(x).lower() == 'true'))
+    parser.add_argument("--resume-training", default=False, type=lambda x: (str(x).lower() == 'true'))
     parser.add_argument("--do-eval", default=False, type=lambda x: (str(x).lower() == 'true'))
     parser.add_argument("--model", default="bert-multi-label", type=str)
     parser.add_argument("--model-path", default=None, type=str)
@@ -23,7 +24,9 @@ def parse_flags():
     parser.add_argument("--model-name", type=str, default=config["model_name"])
     parser.add_argument("--tokenizer-name", type=str, default=config["tokenizer_name"])
     parser.add_argument("--task-name", type=str, default=config["task_name"])
+    parser.add_argument("--neptune-username", type=str, default="julesbelveze")
     parser.add_argument("--neptune-project", type=str, default="multi-label-classifier")
+    parser.add_argument("--neptune-id", type=str, default=None)
     parser.add_argument("--tags", nargs='+', default=[])
     return parser.parse_args()
 
@@ -31,8 +34,10 @@ def parse_flags():
 def run(args):
     """"""
     # setting up neptune experiment
-    neptune.init(api_token=os.environ["NEPTUNE_API_TOKEN"],
-                 project_qualified_name='julesbelveze/{}'.format(args["neptune_project"]))
+    neptune_project = neptune.init(
+        api_token=os.environ["NEPTUNE_API_TOKEN"],
+        project_qualified_name='{}/{}'.format(args["neptune_username"], args["neptune_project"])
+    )
 
     # updating config with the provided flags
     config.update(args)
@@ -67,13 +72,12 @@ def run(args):
 
     if config["do_train"]:
         train_dataset = dataset.load_and_cache_examples(train=True, **config)
-        global_step, tr_loss = train(train_dataset, test_dataset, model, processor, config)
+        global_step, tr_loss = train(train_dataset, test_dataset, model, processor, config, neptune_project)
         logging.info(" global_step = %s, average loss = %s", global_step, tr_loss)
 
     if config["do_eval"]:
         report = evaluate(test_dataset, model, processor, config)
         logging.info("---------------------- Evaluation report ----------------------\n{}".format(report))
-
 
 
 if __name__ == "__main__":

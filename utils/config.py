@@ -115,7 +115,6 @@ config = Config(
     get_mismatched=True,
 
     model_path=None,
-    overwrite_output_dir=False,
-    reprocess_input_data=True,
+
     notes='Using toxicity dataset'
 )
