@@ -128,9 +128,9 @@ def get_multi_label_report(targets, probs, flatten_output=False, thresh: float =
 def get_eval_report(preds, probs, targets, loss_eval, config, flatten_output=False):
     """"""
     acc = accuracy_score(targets, preds)
-    f1 = f1_score(targets, preds, average='micro')
-    prec = precision_score(targets, preds, average='micro')
-    rec = recall_score(targets, preds, average='micro')
+    f1 = f1_score(targets, preds)
+    prec = precision_score(targets, preds)
+    rec = recall_score(targets, preds)
 
     labels_probs = np.array([probs[:, i] for i in range(config["num_labels"])])
 

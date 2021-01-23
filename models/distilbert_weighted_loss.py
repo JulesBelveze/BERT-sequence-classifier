@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 import torch.nn as nn
 from torch.nn import CrossEntropyLoss
@@ -37,3 +38,15 @@ class DistilBertWithWeightedLoss(DistilBertForSequenceClassification):
 
         output = (logits,) + distilbert_output[1:]
         return ((loss,) + output) if loss is not None else output
+
+    @staticmethod
+    def get_weights(target, n_labels=2):
+        """Get class weights per batch"""
+        weights = n_labels * [1]
+        count_labels, count = torch.unique(target, return_counts=True)
+        count_labels = count_labels.cpu().data.numpy().tolist()
+        count = count.cpu().data.numpy().tolist()
+        labels_size = target.size(0)
+        for i, label in enumerate(count_labels):
+            weights[label] = labels_size / (len(count) * count[i])
+        return torch.from_numpy(np.array(weights)).float()

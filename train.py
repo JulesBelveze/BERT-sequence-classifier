@@ -17,7 +17,7 @@ from utils import device
 from utils.metrics import get_accuracy, accuracy_thresh
 
 
-def train(train_dataset, eval_dataset, model, processor, config, freeze_model=False):
+def train(train_dataset, eval_dataset, model, processor, config, neptune_project, freeze_model=False):
     """
     :param train_dataset: iterator on the training set
     :param eval_dataset: iterator on the test set
@@ -26,11 +26,15 @@ def train(train_dataset, eval_dataset, model, processor, config, freeze_model=Fa
     :param config: Config
     :param freeze_model: whether or not to freeze BERT
     """
-    # creating a neptune experiment
-    neptune.create_experiment(name="{}_{}".format(config["model_type"], str(datetime.now())),
-                              params=config,
-                              upload_source_files=['*.py', "models/", "utils/"],
-                              tags=[config["model_type"]] + config["tags"])
+    if config["resume_training"]:
+        # retrieving and updating already existing experiment
+        exp = neptune_project.get_experiments(id=config["neptune_id"])[0]
+    else:
+        # creating a neptune experiment
+        exp = neptune_project.create_experiment(name="{}_{}".format(config["model_type"], str(datetime.now())),
+                                                params=config,
+                                                upload_source_files=['*.py', "models/", "utils/"],
+                                                tags=[config["model_type"]] + config["tags"])
 
     train_sampler = RandomSampler(train_dataset)
     train_dataloader = DataLoader(train_dataset, sampler=train_sampler, batch_size=config['train_batch_size'],
@@ -78,12 +82,18 @@ def train(train_dataset, eval_dataset, model, processor, config, freeze_model=Fa
     global_step = 0
     tr_loss, train_acc, logging_loss = 0.0, 0.0, 0.0
     model.zero_grad()
-    train_iterator = trange(int(config['num_train_epochs']), desc="Epoch")
+    start_epoch = int(config.get("previous_checkpoint", 0) / len(train_dataloader))
+    train_iterator = trange(start_epoch, int(config['num_train_epochs']), desc="Epoch")
 
     # starting training
     for epoch in train_iterator:
         epoch_losses = []
         for step, batch in enumerate(tqdm(train_dataloader, desc="Iteration")):
+            # avoiding to feed already seen batches when resuming training
+            if config["resume_training"] and global_step < config.get("previous_checkpoint") + 1:
+                global_step += 1
+                continue
+
             model.train()
             batch = tuple(t.to(device) for t in batch)
 
@@ -134,10 +144,10 @@ def train(train_dataset, eval_dataset, model, processor, config, freeze_model=Fa
                 global_step += 1
 
                 if config['logging_steps'] > 0 and global_step % config['logging_steps'] == 0:
-                    neptune.log_metric(log_name='lr', y=scheduler.get_lr()[0], x=global_step)
-                    neptune.log_metric(log_name='train_loss', y=(tr_loss - logging_loss) / config['logging_steps'],
+                    exp.log_metric(log_name='lr', y=scheduler.get_lr()[0], x=global_step)
+                    exp.log_metric(log_name='train_loss', y=(tr_loss - logging_loss) / config['logging_steps'],
                                        x=global_step)
-                    neptune.log_metric(log_name='train_acc', y=train_acc / config['logging_steps'], x=global_step)
+                    exp.log_metric(log_name='train_acc', y=train_acc / config['logging_steps'], x=global_step)
                     logging_loss = tr_loss
                     train_acc = 0.0
 
@@ -150,14 +160,14 @@ def train(train_dataset, eval_dataset, model, processor, config, freeze_model=Fa
                                                             'module') else model  # Take care of distributed/parallel training
                     model_to_save.save_pretrained(output_dir)
                     logging.info("Saving model checkpoint to %s", output_dir)
-                    neptune.log_artifact(os.path.join(output_dir, "pytorch_model.bin"),
+                    exp.log_artifact(os.path.join(output_dir, "pytorch_model.bin"),
                                          "pytorch_model_{}.bin".format(global_step))
 
         # Log metrics
         if config['evaluate_during_training']:
             results = evaluate(eval_dataset, model, processor, config, epoch)
             for key, value in results["scalars"].items():
-                neptune.log_metric(log_name='eval_{}'.format(key), y=value, x=epoch)
+                exp.log_metric(log_name='eval_{}'.format(key), y=value, x=epoch)
 
             if "labels_probs" in results["arrays"].keys():
                 labels_probs = results["arrays"]["labels_probs"]
@@ -165,7 +175,7 @@ def train(train_dataset, eval_dataset, model, processor, config, freeze_model=Fa
                     fig = plt.figure(figsize=(15, 15))
                     sns.distplot(labels_probs[i], kde=False, bins=100)
                     plt.title("Probability boxplot for label {}".format(i))
-                    log_chart(name="dist_label_{}_epoch_{}".format(i, epoch), chart=fig)
+                    log_chart(name="dist_label_{}_epoch_{}".format(i, epoch), chart=fig, experiment=exp)
                     plt.close("all")
 
     return global_step, tr_loss / global_step

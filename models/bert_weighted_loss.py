@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 from torch.nn import CrossEntropyLoss
 from transformers import BertForSequenceClassification
@@ -37,3 +38,15 @@ class BertWithWeightedLoss(BertForSequenceClassification):
             outputs = (loss,) + outputs
 
         return outputs  # (loss), logits, (hidden_states), (attentions)
+
+    @staticmethod
+    def get_weights(target, n_labels=2):
+        """Get class weights per batch"""
+        weights = n_labels * [1]
+        count_labels, count = torch.unique(target, return_counts=True)
+        count_labels = count_labels.cpu().data.numpy().tolist()
+        count = count.cpu().data.numpy().tolist()
+        labels_size = target.size(0)
+        for i, label in enumerate(count_labels):
+            weights[label] = labels_size / (len(count) * count[i])
+        return torch.from_numpy(np.array(weights)).float()
