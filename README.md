@@ -22,6 +22,7 @@ python3 -m venv .venv/bert-mlc
 source .venv/bert-mlc/bin/activate
 poetry install
 ```
+This repo uses neptune.ai to manage experiments. We invite you to look at their [documentation](https://docs.neptune.ai/index.html) if needed.
 
 ## Organisation of files
 * `models/`: folder containing custom models
@@ -41,7 +42,7 @@ poetry install
 * **multi-label:** [Toxic Comment Classification Challenge | Kaggle](https://www.kaggle.com/c/jigsaw-toxic-comment-classification-challenge/data)
 
 ## Models
-We provide customisation of three different models: BERT, Roberta and Distilbert.
+We provide customisation of four different models: BERT, Roberta, XLMRoberta and Distilbert.
 ### 1. Multi-label-classifier
 The model is an adaptation of  the `BertForSequenceClassification` model of [HuggingFace](https://huggingface.co/transformers/model_doc/bert.html#bertforsequenceclassification) to handle multi-label. The key modification here is the modification of loss function.
 ### 2. Multi-class-classifier
