@@ -3,26 +3,27 @@ from typing import List
 import datasets
 import pandas as pd
 
-_DESCRIPTION = "Dataset informations can be found here: https://www.kaggle.com/c/jigsaw-toxic-comment-classification-challenge/data"
+_DESCRIPTION = "Dataset can be found here https://raw.githubusercontent.com/susanli2016/NLP-with-Python/master/data" \
+               "/title_conference.csv"
 
 
-class ToxicityConfig(datasets.BuilderConfig):
+class ConferenceConfig(datasets.BuilderConfig):
     def __init__(self, **kwargs):
-        """BuilderConfig for the toxicity dataset.
+        """BuilderConfig for the conference dataset.
         Args:
           **kwargs: keyword arguments forwarded to super.
         """
-        super(ToxicityConfig, self).__init__(version=datasets.Version("1.0.0", ""), **kwargs)
+        super(ConferenceConfig, self).__init__(version=datasets.Version("1.0.0", ""), **kwargs)
 
 
 class ToxicityDataset(datasets.GeneratorBasedBuilder):
-    """Toxicity dataset"""
-    BUILDER_CONFIG_CLASS = ToxicityConfig
+    """Conference dataset"""
+    BUILDER_CONFIG_CLASS = ConferenceConfig
     BUILDER_CONFIGS = [
-        ToxicityConfig(
+        ConferenceConfig(
             name="default",
-            description="Toxicity dataset",
-            data_dir="../data/multi_label"
+            description=_DESCRIPTION,
+            data_dir="../data/multi_class"
         )
     ]
     DEFAULT_CONFIG_NAME = "default"
@@ -32,13 +33,8 @@ class ToxicityDataset(datasets.GeneratorBasedBuilder):
             description=_DESCRIPTION,
             features=datasets.Features(
                 {
-                    "comment_text": datasets.Value("string"),
-                    "toxic": datasets.ClassLabel(names=["false", "true"]),
-                    "severe_toxic": datasets.ClassLabel(names=["false", "true"]),
-                    "obscene": datasets.ClassLabel(names=["false", "true"]),
-                    "threat": datasets.ClassLabel(names=["false", "true"]),
-                    "insult": datasets.ClassLabel(names=["false", "true"]),
-                    "identity_hate": datasets.ClassLabel(names=["false", "true"]),
+                    "title": datasets.Value("string"),
+                    "label": datasets.ClassLabel(names=['ISCAS', 'INFOCOM', 'WWW', 'SIGGRAPH', 'VLDB'])
                 }
             ),
             supervised_keys=None
@@ -70,10 +66,8 @@ class ToxicityDataset(datasets.GeneratorBasedBuilder):
         """ Yields examples. """
         df = pd.read_csv(filepath)
 
-        for _, row in df.iterrows():
-            example = {}
-            example["comment_text"] = row["comment_text"]
-
-            for label in ["toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"]:
-                example[label] = int(row[label])
-            yield row["id"], example
+        for id, row in df.iterrows():
+            yield id, {
+                "title": row["Title"],
+                "label": row["Conference"]
+            }
