@@ -7,7 +7,6 @@ authors = ["JulesBelveze <jules.belveze@hotmail.fr>"]
 [tool.poetry.dependencies]
 python = "^3.7"
 pandas = "^1.1.5"
-tqdm = "^4.54.1"
 torch = "^1.7.1"
 transformers = "^4.1.1"
 scikit-learn = "^0.23.2"
@@ -21,6 +20,7 @@ neptune-contrib = "^0.25.0"
 sentencepiece = "^0.1.94"
 seaborn = "^0.11.1"
 flask = "^1.1.2"
+datasets = "^1.5.0"
 
 [tool.poetry.dev-dependencies]
 

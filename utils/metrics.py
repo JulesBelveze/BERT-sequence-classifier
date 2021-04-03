@@ -150,7 +150,7 @@ def get_eval_report(preds, probs, targets, loss_eval, config, flatten_output=Fal
     }
 
 
-def get_mismatched(labels, preds, processor, config, save=True, thresh=0.5):
+def get_mismatched(labels, preds, examples, config, save=True, thresh=0.5):
     """
     Function to save mislabeled observations.
     :param labels:
@@ -163,12 +163,8 @@ def get_mismatched(labels, preds, processor, config, save=True, thresh=0.5):
     """
     if config["output_mode"] == "multi-label-classification":
         mismatched = (labels > thresh) != preds
-        processor = processor(labels, config["truncate_mode"])
     else:
         mismatched = labels != preds
-        processor = processor(labels, config["truncate_mode"])
-
-    examples = processor.get_test_examples(config['data_dir'])
 
     wrong = [(i, y, y_hat) for (i, v, y, y_hat) in zip(examples, mismatched, labels, preds) if v.any()]
 

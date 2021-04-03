@@ -4,11 +4,9 @@ import os
 from datetime import datetime
 
 import matplotlib.pyplot as plt
-import neptune
-from neptunecontrib.api import log_chart
-import torch
 import seaborn as sns
-from torch.utils.data import DataLoader, RandomSampler
+import torch
+from neptunecontrib.api import log_chart
 from tqdm import trange, tqdm
 from transformers import AdamW, get_linear_schedule_with_warmup
 
@@ -17,7 +15,7 @@ from utils import device
 from utils.metrics import get_accuracy, accuracy_thresh
 
 
-def train(train_dataset, eval_dataset, model, processor, config, neptune_project, freeze_model=False):
+def train(train_dataloader, eval_dataloader, model, config, neptune_project, freeze_model=False):
     """
     :param train_dataset: iterator on the training set
     :param eval_dataset: iterator on the test set
@@ -35,10 +33,6 @@ def train(train_dataset, eval_dataset, model, processor, config, neptune_project
                                                 params=config,
                                                 upload_source_files=['*.py', "models/", "utils/"],
                                                 tags=[config["model_type"]] + config["tags"])
-
-    train_sampler = RandomSampler(train_dataset)
-    train_dataloader = DataLoader(train_dataset, sampler=train_sampler, batch_size=config['train_batch_size'],
-                                  drop_last=True)
 
     num_training_steps = len(train_dataloader) * config['num_train_epochs'] // config['gradient_accumulation_steps']
 
@@ -73,16 +67,16 @@ def train(train_dataset, eval_dataset, model, processor, config, neptune_project
         model = torch.nn.DataParallel(model)
 
     logging.info("***** Running training *****")
-    logging.info("  Num examples = %d", len(train_dataset))
+    logging.info("  Num examples = %d", len(train_dataloader))
     logging.info("  Num Epochs = %d", config['num_train_epochs'])
     logging.info("  Total train batch size  = %d", config['train_batch_size'])
     logging.info("  Gradient Accumulation steps = %d", config['gradient_accumulation_steps'])
     logging.info("  Total optimization steps = %d", num_training_steps)
 
-    global_step = 0
     tr_loss, train_acc, logging_loss = 0.0, 0.0, 0.0
     model.zero_grad()
     start_epoch = int(config.get("previous_checkpoint", 0) / len(train_dataloader))
+    global_step = start_epoch * len(train_dataloader)
     train_iterator = trange(start_epoch, int(config['num_train_epochs']), desc="Epoch")
 
     # starting training
@@ -95,17 +89,17 @@ def train(train_dataset, eval_dataset, model, processor, config, neptune_project
                 continue
 
             model.train()
-            batch = tuple(t.to(device) for t in batch)
 
             if 'distilbert' not in config['model_type']:
-                inputs = {'input_ids': batch[0],
-                          'attention_mask': batch[1],
-                          'token_type_ids': batch[2] if config['model_type'] in ['bert', 'xlnet'] else None,
-                          'labels': batch[3]}
+                inputs = {'input_ids': batch["input_ids"].to(device),
+                          'attention_mask': batch["input_mask"].to(device),
+                          'token_type_ids': batch["token_type_ids"].to(device) if config['model_type'] in
+                                                                                ['bert', 'xlnet'] else None,
+                          'labels': batch["labels"]}
             else:
-                inputs = {'input_ids': batch[0],
-                          'attention_mask': batch[1],
-                          'labels': batch[3]}
+                inputs = {'input_ids': batch["input_ids"].to(device),
+                          'attention_mask': batch["input_mask"].to(device),
+                          'labels': batch["labels"].to(device)}
 
             outputs = model(**inputs)
             loss, logits = outputs[:2]  # model outputs are always tuple in pytorch-transformers (see doc)
@@ -146,7 +140,7 @@ def train(train_dataset, eval_dataset, model, processor, config, neptune_project
                 if config['logging_steps'] > 0 and global_step % config['logging_steps'] == 0:
                     exp.log_metric(log_name='lr', y=scheduler.get_lr()[0], x=global_step)
                     exp.log_metric(log_name='train_loss', y=(tr_loss - logging_loss) / config['logging_steps'],
-                                       x=global_step)
+                                   x=global_step)
                     exp.log_metric(log_name='train_acc', y=train_acc / config['logging_steps'], x=global_step)
                     logging_loss = tr_loss
                     train_acc = 0.0
@@ -161,11 +155,11 @@ def train(train_dataset, eval_dataset, model, processor, config, neptune_project
                     model_to_save.save_pretrained(output_dir)
                     logging.info("Saving model checkpoint to %s", output_dir)
                     exp.log_artifact(os.path.join(output_dir, "pytorch_model.bin"),
-                                         "pytorch_model_{}.bin".format(global_step))
+                                     "pytorch_model_{}.bin".format(global_step))
 
         # Log metrics
         if config['evaluate_during_training']:
-            results = evaluate(eval_dataset, model, processor, config, epoch)
+            results = evaluate(eval_dataloader, model, config, epoch)
             for key, value in results["scalars"].items():
                 exp.log_metric(log_name='eval_{}'.format(key), y=value, x=epoch)
 

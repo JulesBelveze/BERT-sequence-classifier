@@ -147,3 +147,4 @@ data/multi_class/
 data/multi_label/
 checkpoints/
 outputs/
+*.py.lock

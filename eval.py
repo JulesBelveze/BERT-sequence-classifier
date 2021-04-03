@@ -4,27 +4,22 @@ import os
 import numpy as np
 import torch
 import torch.nn.functional as F
-from torch.utils.data import DataLoader, SequentialSampler
 from tqdm import tqdm
 
 from utils import device
 from utils.metrics import get_eval_report, get_mismatched, get_multi_label_report
 
 
-def evaluate(eval_dataset, model, processor, config, epoch=None, prefix=""):
+def evaluate(eval_dataloader, model, config, epoch=None, prefix=""):
     eval_output_dir = config['output_dir']
     results = {}
 
     if not os.path.exists(eval_output_dir):
         os.makedirs(eval_output_dir)
 
-    eval_sampler = SequentialSampler(eval_dataset)
-    eval_dataloader = DataLoader(eval_dataset, sampler=eval_sampler, batch_size=config['eval_batch_size'],
-                                 drop_last=True)
-
     # Evaluation
     logging.info("***** Running evaluation {} *****".format(prefix))
-    logging.info("  Num examples = %d", len(eval_dataset))
+    logging.info("  Num examples = %d", len(eval_dataloader))
     logging.info("  Batch size = %d", config['eval_batch_size'])
 
     eval_loss = 0.0
@@ -32,18 +27,18 @@ def evaluate(eval_dataset, model, processor, config, epoch=None, prefix=""):
 
     for batch in tqdm(eval_dataloader, desc="Evaluating"):
         model.eval()
-        batch = tuple(t.to(device) for t in batch)
 
         with torch.no_grad():
             if 'distilbert' not in config['model_type']:
-                inputs = {'input_ids': batch[0],
-                          'attention_mask': batch[1],
-                          'token_type_ids': batch[2] if config['model_type'] in ['bert', 'xlnet'] else None,
-                          'labels': batch[3]}
+                inputs = {'input_ids': batch["input_ids"].to(device),
+                          'attention_mask': batch["input_mask"].to(device),
+                          'token_type_ids': batch["token_type_ids"].to(device) if config['model_type'] in
+                                                                               ['bert', 'xlnet'] else None,
+                          'labels': batch["labels"]}
             else:
-                inputs = {'input_ids': batch[0],
-                          'attention_mask': batch[1],
-                          'labels': batch[3]}
+                inputs = {'input_ids': batch["input_ids"].to(device),
+                          'attention_mask': batch["input_mask"].to(device),
+                          'labels': batch["labels"].to(device)}
 
             outputs = model(**inputs)
             tmp_eval_loss, logits = outputs[:2]
@@ -84,6 +79,6 @@ def evaluate(eval_dataset, model, processor, config, epoch=None, prefix=""):
             writer.write("%s = %s\n" % (key, str(result[key])))
 
     if config['get_mismatched']:
-        get_mismatched(target_label, preds, processor, config)
+        get_mismatched(target_label, preds, eval_dataloader, config)
 
     return results
