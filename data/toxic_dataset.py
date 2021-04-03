@@ -22,7 +22,7 @@ class ToxicityDataset(datasets.GeneratorBasedBuilder):
         ToxicityConfig(
             name="default",
             description="Toxicity dataset",
-            data_dir="../data/multi_label"
+            data_dir="multi_label/"
         )
     ]
     DEFAULT_CONFIG_NAME = "default"

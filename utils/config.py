@@ -8,7 +8,6 @@ from models import BertForMultiLabelSequenceClassification, BertWithWeightedLoss
     DistilBertForMultiLabelSequenceClassification, DistilBertWithWeightedLoss, \
     RobertaForMultiLabelSequenceClassification, RobertaWithWeightedLoss, \
     XLMRobertaForMultiLabelSequenceClassification, XLMRobertaWithWeightedLoss
-from .processor import MultiLabelProcessor, MultiClassProcessor
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -21,11 +20,6 @@ MODEL_CLASSES = {
     'distilbert-weighted': (DistilBertConfig, DistilBertWithWeightedLoss, DistilBertTokenizer),
     'roberta-weighted': (RobertaConfig, RobertaWithWeightedLoss, RobertaTokenizer),
     'xlm-roberta-weighted': (XLMRobertaConfig, XLMRobertaWithWeightedLoss, XLMRobertaTokenizer)
-}
-
-processors = {
-    "multi-label": MultiLabelProcessor,
-    "multi-class": MultiClassProcessor
 }
 
 

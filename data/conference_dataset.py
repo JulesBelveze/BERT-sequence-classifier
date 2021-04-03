@@ -23,7 +23,7 @@ class ToxicityDataset(datasets.GeneratorBasedBuilder):
         ConferenceConfig(
             name="default",
             description=_DESCRIPTION,
-            data_dir="../data/multi_class"
+            data_dir="multi_class/"
         )
     ]
     DEFAULT_CONFIG_NAME = "default"
