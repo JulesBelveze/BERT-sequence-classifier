@@ -26,7 +26,7 @@ def parse_flags():
     parser.add_argument("--tokenizer-name", type=str, default=config["tokenizer_name"])
     parser.add_argument("--task-name", type=str, default=config["task_name"])
     parser.add_argument("--neptune-username", type=str, default="julesbelveze")
-    parser.add_argument("--neptune-project", type=str, default="multi-label-classifier")
+    parser.add_argument("--neptune-project", type=str, default=config["task_name"])
     parser.add_argument("--neptune-id", type=str, default=None)
     parser.add_argument("--tags", nargs='+', default=[])
     return parser.parse_args()
