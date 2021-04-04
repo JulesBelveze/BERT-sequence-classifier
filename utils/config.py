@@ -85,8 +85,10 @@ config = Config(
     output_mode='multi-label-classification',
     train_batch_size=8,
     eval_batch_size=8,
+
     num_labels=6,
     labels=multi_label_labels,
+    loss_fct="lsl",
     class_weights=[0.57041252, 0.97094431, 1.3147541, 1.57874016, 1.21515152],
     use_class_weights=True,
     pos_weight=[10.433569, 100.044514, 18.886377, 333.830544, 20.257839, 113.573665],
